@@ -5,7 +5,7 @@
 
 import cv2, os, sys, time
 import numpy as np
-from threading import Thread, Semaphore, Lock
+from threading import Thread, Semaphore
 
 #global variables
 frameQueue = []
