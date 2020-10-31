@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 
+#Oscar Castro
+#Producer Consumer Lab
+
 import cv2, os, sys, time
 import numpy as np
 from threading import Thread, Semaphore, Lock
 
+#global variables
 frameQueue = []
 grayScaleQueue = []
 semaphore = Semaphore(2)
@@ -28,12 +32,7 @@ class ExtractFrames(Thread):
                 success, image = self.video.read()
                 print(f'Reading frame {self.count}')
                 self.count += 1
-
-            if self.count == self.maxFrames:
-                semaphore.acquire()
-                frameQueue.append(-1)
-                semaphore.release()
-                break
+                
         print('Frame extraction complete')
 
 class ConvertToGrayScale(Thread):
@@ -47,12 +46,6 @@ class ConvertToGrayScale(Thread):
                 semaphore.acquire()
                 frame = frameQueue.pop(0)
                 semaphore.release()
-
-                if type(frame) == int and frame == -1:
-                    semaphore.acquire()
-                    grayScaleQueue.append(-1)
-                    semaphore.release()
-                    break
 
                 print(f'Converting frame {self.count}')
                 grayFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -75,9 +68,6 @@ class DisplayFrames(Thread):
                 semaphore.acquire()
                 frame = grayScaleQueue.pop(0)
                 semaphore.release()
-
-                if type(frame) == int and frame == -1:
-                    break
 
                 print(f'Displaying Frame {self.count}')
                 cv2.imshow('Video', frame)
