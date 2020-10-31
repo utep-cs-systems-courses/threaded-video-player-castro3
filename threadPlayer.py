@@ -4,12 +4,12 @@ import cv2, os, sys, time
 import numpy as np
 from threading import Thread, Semaphore, Lock
 
-global frameQueue = []
-global grayScaleQueue = []
-global semaphore = Semaphore(2)
-global queueLimit = 10
+frameQueue = []
+grayScaleQueue = []
+semaphore = Semaphore(2)
+queueLimit = 10
 
-class extractFrames(Thread):
+class ExtractFrames(Thread):
     def __init__(self):
         Thread.__init__(self)
         self.video = cv2.VideoCapture('clip.mp4')
@@ -17,26 +17,26 @@ class extractFrames(Thread):
         self.count = 0
 
     def run(self):
-        success, image = video.read()
+        success, image = self.video.read()
 
-        while success and count < 72:
+        while success and self.count < 72:
             if len(frameQueue) <= queueLimit:
                 semaphore.acquire()
                 frameQueue.append(image)
                 semaphore.release()
 
-                success, image = video.read()
-                print(f'Reading frame {count}')
-                count += 1
+                success, image = self.video.read()
+                print(f'Reading frame {self.count}')
+                self.count += 1
 
-            if count == maxFrames:
+            if self.count == self.maxFrames:
                 semaphore.acquire()
                 frameQueue.append(-1)
                 semaphore.release()
                 break
         return
 
-class convertToGrayScale(Thread):
+class ConvertToGrayScale(Thread):
     def __init__(self):
         Thread.__init__(self)
         self.count = 0
@@ -45,7 +45,7 @@ class convertToGrayScale(Thread):
         while True:
             if frameQueue and len(grayScaleQueue) <= queueLimit:
                 semaphore.acquire()
-                frame = queue1.pop(0)
+                frame = frameQueue.pop(0)
                 semaphore.release()
 
                 if type(frame) == int and frame == -1:
@@ -54,12 +54,45 @@ class convertToGrayScale(Thread):
                     semaphore.release()
                     break
 
-                print(f'Converting frame {count}')
+                print(f'Converting frame {self.count}')
                 grayFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
                 semaphore.acquire()
                 grayScaleQueue.append(grayFrame)
                 semaphore.release()
-                count += 1
+                self.count += 1
         return
 
-class displayFrames(Thread):
+class DisplayFrames(Thread):
+    def __init__(self):
+        Thread.__init__(self)
+        self.delay = 42
+        self.count = 0
+
+    def run(self):
+        while True:
+            if grayScaleQueue:
+                semaphore.acquire()
+                frame = grayScaleQueue.pop(0)
+                semaphore.release()
+
+                if type(frame) == int and frame == -1:
+                    break
+
+                print(f'Displaying Frame {self.count}')
+                cv2.imshow('Video', frame)
+                self.count += 1
+
+                if cv2.waitKey(self.delay) and 0xFF == ord('q'):
+                    break
+
+        cv2.destroyAllWindows()
+        return
+
+
+#run all threads concurrently
+extractFrames = ExtractFrames()
+extractFrames.start()
+convertToGrayScale = ConvertToGrayScale()
+convertToGrayScale.start()
+displayFrames = DisplayFrames()
+displayFrames.start()
