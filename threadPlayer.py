@@ -19,7 +19,7 @@ class ExtractFrames(Thread):
     def run(self):
         success, image = self.video.read()
 
-        while success and self.count < 72:
+        while success and self.count <= 72:
             if len(frameQueue) <= queueLimit:
                 semaphore.acquire()
                 frameQueue.append(image)
@@ -34,7 +34,7 @@ class ExtractFrames(Thread):
                 frameQueue.append(-1)
                 semaphore.release()
                 break
-        return
+        print('Frame extraction complete')
 
 class ConvertToGrayScale(Thread):
     def __init__(self):
@@ -42,7 +42,7 @@ class ConvertToGrayScale(Thread):
         self.count = 0
 
     def run(self):
-        while True:
+        while self.count <= 72:
             if frameQueue and len(grayScaleQueue) <= queueLimit:
                 semaphore.acquire()
                 frame = frameQueue.pop(0)
@@ -60,7 +60,8 @@ class ConvertToGrayScale(Thread):
                 grayScaleQueue.append(grayFrame)
                 semaphore.release()
                 self.count += 1
-        return
+
+        print('Finished converting to gray scale')          
 
 class DisplayFrames(Thread):
     def __init__(self):
@@ -69,7 +70,7 @@ class DisplayFrames(Thread):
         self.count = 0
 
     def run(self):
-        while True:
+        while self.count <= 72:
             if grayScaleQueue:
                 semaphore.acquire()
                 frame = grayScaleQueue.pop(0)
@@ -84,9 +85,9 @@ class DisplayFrames(Thread):
 
                 if cv2.waitKey(self.delay) and 0xFF == ord('q'):
                     break
-
+        
+        print('Finished displaying all frames')
         cv2.destroyAllWindows()
-        return
 
 
 #run all threads concurrently
